@@ -1,17 +1,20 @@
 {
     "server": {
-      "port": "8080",
-      "write_timeout": 10,
-      "read_timeout": 10
+        "host": "0.0.0.0",
+        "port": "5004",
+        "write_timeout": 10,
+        "read_timeout": 10
     },
     "mongodb": {
-      "uri": "mongodb://localhost:27017",
-      "database": "agent_data",
-      "collection": "connections"
+        "uri": "mongodb://netmon:netmon@localhost:27017",
+        "database": "agent_data",
+        "collection": "connections",
+        "new_collection": "all_connections"
     },
     "cache": {
-      "flush_interval": 60,
-      "load_data_older_than": 24,
-      "initial_load_batch_size": 1000
+        "flush_interval": 60,
+        "load_data_older_than": 24,
+        "initial_load_batch_size": 1000,
+        "max_cache_age": 24
     }
-  }
+}
