@@ -359,37 +359,12 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) transformData(rawData bson.M) (bson.M, error) {
-	localPort, lok := rawData["local_addr"].(bson.M)["port"].(int32)
-	remotePort, rok := rawData["remote_addr"].(bson.M)["port"].(int32)
-	if !lok || !rok {
-		return nil, fmt.Errorf("invalid port types")
-	}
-
-	isVirtualPort := func(port int32) bool {
-		return port >= 32768 && port <= 60999
-	}
-
-	var relationPort int32
-	switch {
-	case !isVirtualPort(localPort) && !isVirtualPort(remotePort):
-
-		relationPort = remotePort
-	case isVirtualPort(localPort) && !isVirtualPort(remotePort):
-
-		relationPort = 5000
-	case !isVirtualPort(localPort) && isVirtualPort(remotePort):
-
-		relationPort = 0
-	default:
-
-		relationPort = 0
-	}
-
 	localIP := rawData["local_addr"].(bson.M)["ip"].(string)
 	localName := rawData["local_addr"].(bson.M)["name"].(string)
+	localPort := rawData["local_addr"].(bson.M)["port"].(int32)
 	remoteIP := rawData["remote_addr"].(bson.M)["ip"].(string)
 	remoteName := rawData["remote_addr"].(bson.M)["name"].(string)
-	mode := rawData["relation"].(bson.M)["mode"].(string)
+	remotePort := rawData["remote_addr"].(bson.M)["port"].(int32)
 
 	if localName == "" {
 		localName = localIP
@@ -398,17 +373,41 @@ func (s *Server) transformData(rawData bson.M) (bson.M, error) {
 		remoteName = remoteIP
 	}
 
+	isVirtualPort := func(port int32) bool {
+		return port >= 32768 && port <= 60999
+	}
+
+	var (
+		finalLocalIP, finalRemoteIP     string
+		finalLocalName, finalRemoteName string
+		relationPort                    int32
+	)
+
+	if !isVirtualPort(localPort) {
+		finalLocalIP = remoteIP
+		finalLocalName = remoteName
+		finalRemoteIP = localIP
+		finalRemoteName = localName
+		relationPort = localPort
+	} else {
+		finalLocalIP = localIP
+		finalLocalName = localName
+		finalRemoteIP = remoteIP
+		finalRemoteName = remoteName
+		relationPort = remotePort
+	}
+
 	return bson.M{
 		"localAddr": bson.M{
-			"ip":   localIP,
-			"name": localName,
+			"ip":   finalLocalIP,
+			"name": finalLocalName,
 		},
 		"remoteAddr": bson.M{
-			"ip":   remoteIP,
-			"name": remoteName,
+			"ip":   finalRemoteIP,
+			"name": finalRemoteName,
 		},
 		"relation": bson.M{
-			"mode":     mode,
+			"mode":     rawData["relation"].(bson.M)["mode"],
 			"port":     relationPort,
 			"result":   rawData["relation"].(bson.M)["result"],
 			"response": rawData["relation"].(bson.M)["response"],
